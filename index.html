@@ -5,8 +5,32 @@
   <title>three.js demo</title>
   <style>
     * { margin: 0; padding: 0; }
-    body { background: black; }
+    body { background: black; color: white; }
     canvas { display: block; }
+    /* ▼▼ ボタン用のスタイルを追加 ▼▼ */
+    #session-buttons {
+      position: absolute;
+      bottom: 20px;
+      width: 100%;
+      text-align: center;
+      z-index: 10;
+    }
+    button {
+      font-size: 16px;
+      padding: 12px 24px;
+      margin: 5px;
+      border: 1px solid white;
+      background: rgba(0, 0, 0, 0.5);
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
   </style>
 
   <script type="importmap">
@@ -19,21 +43,24 @@
   </script>
 </head>
 <body>
+  <div id="session-buttons">
+    <button id="vr-button" disabled>VRで体験</button>
+    <button id="ar-button" disabled>パススルーで体験</button>
+  </div>
+
   <script type="module">
     // --- ライブラリの読み込み ---
     import * as THREE from 'three';
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
     import { BoxLineGeometry } from 'three/addons/geometries/BoxLineGeometry.js';
-    import { VRButton } from 'three/addons/webxr/VRButton.js';
+    // VRButtonは使わないので削除
 
     // --- シーンとレンダラーの初期設定 ---
     const scene = new THREE.Scene();
-    scene.background = null; // パススルー用の設定
-
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
-      alpha: true // パススルー用の設定
+      alpha: true // AR/パススルーのためにalphaは常に有効
     });
     document.body.appendChild(renderer.domElement);
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -44,7 +71,7 @@
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.set(0, 1.6, 3);
     const controls = new OrbitControls(camera, renderer.domElement);
-    const light = new THREE.DirectionalLight(0xFFFFFF, 1.0);
+    const light = new THREE.DirectionalLight(0xFFFFFF, 3.0);
     light.position.set(1, 1, 1);
     scene.add(light);
     scene.add(new THREE.HemisphereLight(0x808080, 0x606060));
@@ -59,25 +86,54 @@
       scene.add(model);
     });
 
-    // --- VR空間の部屋 ---
+    // --- 空間の部屋 ---
     const room = new THREE.LineSegments(
       new BoxLineGeometry(8, 5, 8, 10, 10, 10).translate(0, 2.5, 0),
       new THREE.LineBasicMaterial({ color: 0x808080 })
     );
     scene.add(room);
 
-    // --- VRボタンの追加 ---
-    document.body.appendChild(VRButton.createButton(renderer));
-
     // --- アニメーションループ ---
     function tick() {
-      if (model) {
-        model.rotation.y += 0.005;
-      }
+      if (model) { model.rotation.y += 0.005; }
       controls.update();
       renderer.render(scene, camera);
     }
     renderer.setAnimationLoop(tick);
+
+    // ▼▼▼ ここからが新しいセッション管理ロジック ▼▼▼
+
+    const vrButton = document.getElementById('vr-button');
+    const arButton = document.getElementById('ar-button');
+
+    // 1. デバイスが各モードに対応しているかチェック
+    if (navigator.xr) {
+      navigator.xr.isSessionSupported('immersive-vr').then((supported) => {
+        if (supported) vrButton.disabled = false;
+      });
+      navigator.xr.isSessionSupported('immersive-ar').then((supported) => {
+        if (supported) arButton.disabled = false;
+      });
+    }
+
+    // 2. ボタンにクリックイベントを設定
+    vrButton.addEventListener('click', () => startSession('immersive-vr'));
+    arButton.addEventListener('click', () => startSession('immersive-ar'));
+
+    // 3. セッションを開始する関数
+    async function startSession(mode) {
+      // セッション開始時に背景を動的に変更
+      if (mode === 'immersive-ar') {
+        scene.background = null; // ARモードでは背景を透過
+      } else {
+        scene.background = new THREE.Color(0x111111); // VRモードでは背景を黒にする
+      }
+
+      const session = await navigator.xr.requestSession(mode, {
+        optionalFeatures: ['local-floor', 'bounded-floor', 'hand-tracking']
+      });
+      renderer.xr.setSession(session);
+    }
   </script>
 </body>
 </html>

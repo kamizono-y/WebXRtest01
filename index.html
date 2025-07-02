@@ -34,22 +34,23 @@
       model.position.set(0, 1, -3);
       scene.add(model);
 
-      // ▼▼▼ この処理を追加 ▼▼▼
-      // モデルの全てのメッシュを調べて罫線（ワイヤーフレーム）を非表示にする
       model.traverse((child) => {
         if (child.isMesh && child.material) {
           child.material.wireframe = false;
         }
       });
-      // ▲▲▲ ここまでを追加 ▲▲▲
     });
 
+    // ▼▼▼ この「空間の部屋」のブロックを削除（コメントアウト）▼▼▼
+    /*
     // --- 空間の部屋 ---
     const room = new THREE.LineSegments(
       new BoxLineGeometry(8, 5, 8, 10, 10, 10).translate(0, 2.5, 0),
       new THREE.LineBasicMaterial({ color: 0x808080 })
     );
     scene.add(room);
+    */
+    // ▲▲▲ ここまでを削除 ▲▲▲
 
     // --- アニメーションループ ---
     function tick() {

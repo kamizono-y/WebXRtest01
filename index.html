@@ -16,15 +16,23 @@
       display: block;
     }
   </style>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.154.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.154.0/examples/jsm/"
+      }
+    }
+  </script>
 </head>
 <body>
   <script type="module">
-    import * as THREE from './build/three.module.js';
-    import { OrbitControls } from './jsm/controls/OrbitControls.js';
-    import { GLTFLoader } from './jsm/loaders/GLTFLoader.js';
+    // 1. importのパスを、ローカルパスからimportmapで定義した名前に変更
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
     const canvas = document.createElement('canvas');
-
     document.body.appendChild(canvas);
 
     const scene = new THREE.Scene();
@@ -35,50 +43,45 @@
       canvas,
       antialias: true
     });
-
     renderer.setSize(width, height);
 
     const camera = new THREE.PerspectiveCamera(45, width / height, 1, 100);
-
     camera.position.set(0, 1, 10);
 
     const controls = new OrbitControls(camera, renderer.domElement);
     const light = new THREE.DirectionalLight(0xFFFFFF);
-
     light.position.set(1, 1, 1);
     scene.add(light);
 
     const loader = new GLTFLoader();
-    const url = '/logo20250626.glb';
+    
+    // 2. モデルのURLの先頭にあった'/'を削除し、'./'に変更
+    const url = './logo20250626.glb';
 
     let model;
-
     loader.load(
       url,
       (gltf) => {
         model = gltf.scene;
-
         model.scale.set(1, 1, 1);
         model.position.set(0, 1, -3);
         scene.add(gltf.scene);
-
         tick();
       },
+      undefined, // 進捗表示用の関数（不要な場合はundefined）
       (err) => {
-        console.error(err);
+        console.error('GLTFファイルの読み込みエラー:', err);
       }
     );
 
     function tick() {
       controls.update();
-
       if (model) {
         model.rotation.y += .01;
       }
-
       renderer.render(scene, camera);
       requestAnimationFrame(tick);
     }
-</script>
+  </script>
 </body>
 </html>

@@ -7,7 +7,6 @@
     * { margin: 0; padding: 0; }
     body { background: black; color: white; }
     canvas { display: block; }
-    /* ▼▼ ボタン用のスタイルを追加 ▼▼ */
     #session-buttons {
       position: absolute;
       bottom: 20px;
@@ -54,13 +53,12 @@
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
     import { BoxLineGeometry } from 'three/addons/geometries/BoxLineGeometry.js';
-    // VRButtonは使わないので削除
 
     // --- シーンとレンダラーの初期設定 ---
     const scene = new THREE.Scene();
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
-      alpha: true // AR/パススルーのためにalphaは常に有効
+      alpha: true
     });
     document.body.appendChild(renderer.domElement);
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -78,7 +76,7 @@
 
     // --- 3Dモデルの読み込み ---
     const loader = new GLTFLoader();
-    const url = './logo20250626.glb';
+    const url = './zumen.glb';
     let model;
     loader.load(url, (gltf) => {
       model = gltf.scene;
@@ -95,18 +93,16 @@
 
     // --- アニメーションループ ---
     function tick() {
-      if (model) { model.rotation.y += 0.005; }
+      // if (model) { model.rotation.y += 0.005; } // ★★★ この行を削除しました ★★★
       controls.update();
       renderer.render(scene, camera);
     }
     renderer.setAnimationLoop(tick);
 
-    // ▼▼▼ ここからが新しいセッション管理ロジック ▼▼▼
-
+    // --- セッション管理ロジック ---
     const vrButton = document.getElementById('vr-button');
     const arButton = document.getElementById('ar-button');
 
-    // 1. デバイスが各モードに対応しているかチェック
     if (navigator.xr) {
       navigator.xr.isSessionSupported('immersive-vr').then((supported) => {
         if (supported) vrButton.disabled = false;
@@ -116,19 +112,15 @@
       });
     }
 
-    // 2. ボタンにクリックイベントを設定
     vrButton.addEventListener('click', () => startSession('immersive-vr'));
     arButton.addEventListener('click', () => startSession('immersive-ar'));
 
-    // 3. セッションを開始する関数
     async function startSession(mode) {
-      // セッション開始時に背景を動的に変更
       if (mode === 'immersive-ar') {
-        scene.background = null; // ARモードでは背景を透過
+        scene.background = null;
       } else {
-        scene.background = new THREE.Color(0x111111); // VRモードでは背景を黒にする
+        scene.background = new THREE.Color(0x111111);
       }
-
       const session = await navigator.xr.requestSession(mode, {
         optionalFeatures: ['local-floor', 'bounded-floor', 'hand-tracking']
       });

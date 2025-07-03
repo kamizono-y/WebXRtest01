@@ -1,59 +1,13 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8" />
-  <title>three.js demo</title>
-  <style>
-    * { margin: 0; padding: 0; }
-    body { background: black; color: white; }
-    canvas { display: block; }
-    #session-buttons {
-      position: absolute;
-      bottom: 20px;
-      width: 100%;
-      text-align: center;
-      z-index: 10;
-    }
-    button {
-      font-size: 16px;
-      padding: 12px 24px;
-      margin: 5px;
-      border: 1px solid white;
-      background: rgba(0, 0, 0, 0.5);
-      color: white;
-      cursor: pointer;
-    }
-    button:hover {
-      background: rgba(255, 255, 255, 0.2);
-    }
-    button:disabled {
-      cursor: not-allowed;
-      opacity: 0.5;
-    }
-  </style>
-
-  <script type="importmap">
-    {
-      "imports": {
-        "three": "https://unpkg.com/three@0.154.0/build/three.module.js",
-        "three/addons/": "https://unpkg.com/three@0.154.0/examples/jsm/"
-      }
-    }
-  </script>
-
-</head>
-<body>
-  <div id="session-buttons">
-    <button id="vr-button" disabled>VRで体験</button>
-    <button id="ar-button" disabled>パススルーで体験</button>
-  </div>
-
-  <script type="module">
+<script type="module">
     // --- ライブラリの読み込み ---
     import * as THREE from 'three';
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
     import { BoxLineGeometry } from 'three/addons/geometries/BoxLineGeometry.js';
+
+    // --- 変数の準備 ---
+    let mixer; // ▼▼▼ AnimationMixer用の変数を追加 ▼▼▼
+    const clock = new THREE.Clock(); // ▼▼▼ アニメーションの時間管理用に追加 ▼▼▼
 
     // --- シーンとレンダラーの初期設定 ---
     const scene = new THREE.Scene();
@@ -84,20 +38,34 @@
       model.position.set(0, 1, -3);
       scene.add(model);
 
-      // モデルの罫線（ワイヤーフレーム）を非表示にする
       model.traverse((child) => {
         if (child.isMesh && child.material) {
           child.material.wireframe = false;
         }
       });
+      
+      // ▼▼▼ ここからアニメーション設定を追加 ▼▼▼
+      // 1. AnimationMixerを作成し、モデルを渡す
+      mixer = new THREE.AnimationMixer(model);
+
+      // 2. GLBに含まれる最初のアニメーションを取得して再生
+      if (gltf.animations.length > 0) {
+        const action = mixer.clipAction(gltf.animations[0]);
+        action.play();
+      }
+      // ▲▲▲ ここまでを追加 ▲▲▲
     });
 
-    /*
-    // --- 空間の部屋（ガイド線）は削除済み ---
-    */
+    /* --- 空間の部屋（ガイド線）は削除済み --- */
 
     // --- アニメーションループ ---
     function tick() {
+      const delta = clock.getDelta(); // ▼▼▼ 経過時間を取得 ▼▼▼
+
+      if (mixer) {
+        mixer.update(delta); // ▼▼▼ AnimationMixerを更新 ▼▼▼
+      }
+
       controls.update();
       renderer.render(scene, camera);
     }
@@ -131,5 +99,3 @@
       renderer.xr.setSession(session);
     }
   </script>
-</body>
-</html>
